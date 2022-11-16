@@ -19,6 +19,8 @@ async fn main() {
     // let mut self = self;
     // let this = &mut *self;
 
+    // new(f: impl Future<Output=T> + Send + 'static) -> Self
+
     // Как заполить футуру:
     // self.inner_future.as_mut().poll(context)
 
