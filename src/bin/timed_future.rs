@@ -7,15 +7,15 @@ use std::time::Duration;
 
 use std::time::Instant;
 
-struct TimedFuture<T> {
-    inner: BoxFuture<'static, T>,
+struct TimedFuture<'a, F: Future> {
+    inner: Pin<&'a mut F>,
     start: Option<Instant>,
 }
 
-impl<T> TimedFuture<T> {
+impl<'a, T: Future> TimedFuture<'a, T> {
     fn new(future: impl Future<Output = T> + 'static + Send) -> Self {
         Self {
-            inner: future.boxed(),
+            inner: todo!(),
             start: None,
         }
     }
