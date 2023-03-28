@@ -1,0 +1,12 @@
+[package]
+name = "async-practice"
+version = "0.1.0"
+edition = "2021"
+
+default-run = "async-practice"
+
+[dependencies]
+futures = "0.3"
+pin-project = "1.0"
+tokio = { version = "1.0", features = ["full"] }
+reqwest = "0.11.12"
