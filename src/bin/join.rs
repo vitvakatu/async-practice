@@ -36,21 +36,25 @@ impl<'a, F1: Future + 'a, F2: Future + 'a> Join<'a, F1, F2> {
     }
 }
 
-impl<'a, F1: Future, F2: Future> Future for Join<'a, F1, F2> {
+impl<'a, F1: Future + 'a, F2: Future + 'a> Future for Join<'a, F1, F2> {
     type Output = (F1::Output, F2::Output);
 
-    fn poll(self: Pin<&mut Self>, cxt: &mut Context<'_>) -> Poll<Self::Output> {
+    fn poll(self: Pin<&mut Self>, ctx: &mut Context<'_>) -> Poll<Self::Output> {
         let mut this = self.project();
         if this.results.0.is_none() {
-            match this.f1.as_mut().poll(cxt) {
+            match this.f1.as_mut().poll(ctx) {
+                Poll::Ready(output) => {
+                    this.results.0 = Some(output);
+                }
                 Poll::Pending => {}
-                Poll::Ready(res) => this.results.0 = Some(res),
             }
         }
         if this.results.1.is_none() {
-            match this.f2.as_mut().poll(cxt) {
+            match this.f2.as_mut().poll(ctx) {
+                Poll::Ready(output) => {
+                    this.results.1 = Some(output);
+                }
                 Poll::Pending => {}
-                Poll::Ready(res) => this.results.1 = Some(res),
             }
         }
         if this.results.0.is_some() && this.results.1.is_some() {
