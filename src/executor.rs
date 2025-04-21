@@ -1,4 +1,3 @@
-use std::pin::Pin;
 use {
     futures::{
         future::{BoxFuture, FutureExt},
@@ -9,7 +8,6 @@ use {
         sync::mpsc::{sync_channel, Receiver, SyncSender},
         sync::{Arc, Mutex},
         task::{Context, Poll},
-        time::Duration,
     },
 };
 

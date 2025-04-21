@@ -2,8 +2,7 @@
 name = "async-practice"
 version = "0.1.0"
 edition = "2021"
-
-default-run = "async-practice"
+publish = false
 
 [dependencies]
 futures = "0.3"
