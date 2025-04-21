@@ -15,34 +15,56 @@ fn random_numbers(seed: u32) -> impl Iterator<Item = u32> {
     })
 }
 
-struct Join<F1: Future, F2: Future> {
-    f1: Box<dyn Future<Output = F1::Output> + 'static>,
-    f2: Box<dyn Future<Output = F2::Output> + 'static>,
-    _marker: std::marker::PhantomData<(F1, F2)>,
+#[pin_project::pin_project]
+struct Join<'a, F1: Future, F2: Future> {
+    #[pin]
+    f1: F1,
+    #[pin]
+    f2: F2,
+    results: (Option<F1::Output>, Option<F2::Output>),
+    _marker: std::marker::PhantomData<(&'a (), F1, F2)>,
 }
 
-impl<F1: Future + 'static, F2: Future + 'static> Join<F1, F2> {
+impl<'a, F1: Future + 'a, F2: Future + 'a> Join<'a, F1, F2> {
     fn new(f1: F1, f2: F2) -> Self {
         Self {
-            f1: Box::new(f1),
-            f2: Box::new(f2),
+            f1,
+            f2,
+            results: (None, None),
             _marker: std::marker::PhantomData,
         }
     }
 }
 
-impl<F1: Future, F2: Future> Future for Join<F1, F2> {
+impl<'a, F1: Future, F2: Future> Future for Join<'a, F1, F2> {
     type Output = (F1::Output, F2::Output);
 
-    fn poll(self: Pin<&mut Self>, _: &mut Context<'_>) -> Poll<Self::Output> {
-        todo!()
+    fn poll(self: Pin<&mut Self>, cxt: &mut Context<'_>) -> Poll<Self::Output> {
+        let mut this = self.project();
+        if this.results.0.is_none() {
+            match this.f1.as_mut().poll(cxt) {
+                Poll::Pending => {}
+                Poll::Ready(res) => this.results.0 = Some(res),
+            }
+        }
+        if this.results.1.is_none() {
+            match this.f2.as_mut().poll(cxt) {
+                Poll::Pending => {}
+                Poll::Ready(res) => this.results.1 = Some(res),
+            }
+        }
+        if this.results.0.is_some() && this.results.1.is_some() {
+            Poll::Ready((
+                this.results.0.take().unwrap(),
+                this.results.1.take().unwrap(),
+            ))
+        } else {
+            Poll::Pending
+        }
     }
 }
 
-async fn join<F1: Future + 'static, F2: Future + 'static>(
-    a: F1,
-    b: F2,
-) -> (F1::Output, F2::Output) {
+async fn join<'a, F1: Future + 'a, F2: Future + 'a>(a: F1, b: F2) -> (F1::Output, F2::Output) {
     Join::new(a, b).await
 }
 
@@ -59,7 +81,7 @@ async fn main() {
         panic!("Failed to get random numbers");
     };
 
-    let (a, b) = tokio::join!(
+    let (a, b) = join(
         async {
             tokio::time::sleep(std::time::Duration::from_millis(*delay_a as u64)).await;
             println!("A");
@@ -70,6 +92,7 @@ async fn main() {
             println!("B");
             delay_b
         },
-    );
+    )
+    .await;
     println!("Results: {} {}", a, b);
 }

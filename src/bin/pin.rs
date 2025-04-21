@@ -20,8 +20,7 @@ fn main() {
         value: "Hello, world!".to_string(),
         pointer: NonNull::dangling(),
     };
-    // SAFETY: x.value is non-null as it is already allocated.
-    x.pointer = unsafe { NonNull::new_unchecked(&mut x.value as *mut _) };
+    x.pointer = NonNull::new(&mut x.value as *mut _).unwrap();
 
     println!("Struct address:\t\t{:p}", &x);
     println!("Field address:\t\t{:p}", &x.value);
